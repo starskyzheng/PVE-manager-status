@@ -115,6 +115,7 @@ $res->{cpuFreq} = `
 	minf=/sys/devices/system/cpu/cpufreq/policy0/cpuinfo_min_freq
 	
 	cat /proc/cpuinfo | grep -i  "cpu mhz"
+ 
 	echo -n 'gov:'
 	[ -f \$goverf ] && cat \$goverf || echo none
 	echo -n 'min:'
@@ -123,7 +124,10 @@ $res->{cpuFreq} = `
 	[ -f \$maxf ] && cat \$maxf || echo none
 	echo -n 'pkgwatt:'
 	[ -e /usr/sbin/turbostat ] && turbostat --quiet --cpu package --show "PkgWatt" -S sleep 0.25 2>&1 | tail -n1 
-
+`;
+$res->{cpuFreq2} = `
+ 	turbostat -s 'Avg_MHz' --quiet sleep 0.25 2>&1 | tail -n +4 | perl -ne 'print "Avg_Mhz:$_"'
+	turbostat -s 'Busy%' --quiet sleep 0.25 2>&1 | tail -n +4 | perl -ne 'print "Busy:$_"'
 `;
 EOF
 
@@ -188,6 +192,26 @@ cat > $contentforpvejs << 'EOF'
 			console.log(c)
 			c = c.join(' | ');
 			return c;
+		 }
+	},
+ 	{
+		  itemId: 'cpumhz2',
+		  colspan: 2,
+		  printBar: false,
+		  title: gettext('CPU频率真实(GHz)'),
+		  textField: 'cpuFreq2',
+		  renderer:function(v){
+			//return v;
+			console.log(v);
+			let Avg_Mhz_m = v.match(/(?<=^Avg_Mhz:)\d+/img);
+			let Avg_Mhz_m2 = m.map( e => ( e / 1000 ).toFixed(1) );
+			Avg_Mhz_m2 = Avg_Mhz_m2.join(' | ');
+			
+			let Busy_m = v.match(/(?<=^Busy:)\d+/img);
+			let Busy_m2 = m.map( e => ( e / 1000 ).toFixed(1) );
+			Busy_m2 = Busy_m2.join(' | ');
+   
+			return `${Avg_Mhz_m2} ||| Busy: ${Busy_m2}`
 		 }
 	},
 	{
